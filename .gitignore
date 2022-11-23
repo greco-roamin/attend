@@ -1,0 +1,11 @@
+*
+!LICENSE
+!.gitignore
+!README.md
+!cfg.py
+!functions.py
+!main*.py
+!trainCb.py
+!predictCb.py
+!attnSelf.py
+!attention.py
