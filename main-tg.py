@@ -121,34 +121,56 @@ if verbose:
 # Build Model
 #############################
 
-model = tf.keras.models.Sequential()
+    if cfg.COMBINED:
 
-if cfg.BIDIRECTIONAL:
-    model.add(layers.Bidirectional(layers.LSTM(cfg.LSTM, input_shape=(cfg.SEQLENGTH,
-            train_X.shape[1]),
-            return_sequences=True,
-            dropout=cfg.DROPOUT)))
-else:
-    model.add(layers.LSTM(cfg.LSTM,
-            return_sequences=True,
-            dropout=cfg.DROPOUT))
+        inp = layers.Input(shape=(cfg.SEQLENGTH, train_X.shape[1]))
 
-if cfg.NO_ATTN:
-    model.add(layers.TimeDistributed(layers.Dense(cfg.DENSE1, activation='sigmoid')))
-elif cfg.SIMPLE_ATTN:
-    model.add(Attention())
-elif cfg.SELF_ATTN:
-    model.add(AttnSelf(cfg.SEQLENGTH))
+        if cfg.BIDIRECTIONAL:
+            x = layers.Bidirectional(layers.LSTM(cfg.LSTM, return_sequences=True, dropout=cfg.DROPOUT))(inp)
+        else:
+            x = layers.LSTM(cfg.LSTM, return_sequences=True, dropout=cfg.DROPOUT)(inp)
 
-model.add(layers.Flatten())
+        attnSelf = AttnSelf(cfg.SEQLENGTH)(x)
+        attn = Attention(return_sequences=True)(x)
+        x = layers.Concatenate(axis=-1)([attnSelf, attn])
+        x = layers.Flatten()(x)
 
-model.add(layers.Dense(cfg.DENSE1, activation='sigmoid'))
-if cfg.DROPOUT:
-    model.add(layers.Dropout(cfg.DROPOUT))
-model.add(layers.Dense(cfg.DENSE2, activation='sigmoid'))
-if cfg.DROPOUT:
-    model.add(layers.Dropout(cfg.DROPOUT))
-model.add(layers.Dense(cfg.OUTPUT, activation='sigmoid' if cfg.OUTPUT == 1 else 'softmax'))
+        x = layers.Dense(cfg.DENSE1, activation='relu')(x)
+        x = layers.Dropout(cfg.DROPOUT)(x)
+        x = layers.Dense(cfg.DENSE2, activation='relu')(x)
+        x = layers.Dropout(cfg.DROPOUT)(x)
+
+        out = layers.Dense(cfg.OUTPUT, activation='sigmoid' if cfg.OUTPUT == 1 else 'softmax')(x)
+        del x
+        model = tf.keras.Model(inputs=inp, outputs=out)
+
+    else:
+        model = tf.keras.models.Sequential()
+
+        if cfg.BIDIRECTIONAL:
+            model.add(layers.Bidirectional(layers.LSTM(cfg.LSTM, input_shape=(cfg.SEQLENGTH,
+                    train_X.shape[1]),
+                    return_sequences=True,
+                    dropout=cfg.DROPOUT)))
+        else:
+            model.add(layers.LSTM(cfg.LSTM,
+                    return_sequences=True,
+                    dropout=cfg.DROPOUT))
+
+        if cfg.NO_ATTN:
+            model.add(layers.TimeDistributed(layers.Dense(cfg.DENSE1, activation='sigmoid')))
+        elif cfg.SIMPLE_ATTN:
+            model.add(Attention())
+        elif cfg.SELF_ATTN:
+            model.add(AttnSelf(cfg.SEQLENGTH))
+        model.add(layers.Flatten())
+        model.add(layers.Dense(cfg.DENSE1, activation='sigmoid'))
+        if cfg.DROPOUT:
+            model.add(layers.Dropout(cfg.DROPOUT))
+        model.add(layers.Dense(cfg.DENSE2, activation='sigmoid'))
+        if cfg.DROPOUT:
+            model.add(layers.Dropout(cfg.DROPOUT))
+        model.add(layers.Dense(cfg.OUTPUT, activation='sigmoid' if cfg.OUTPUT == 1 else 'softmax'))
 
 #############################
 # Finalize Model and Train
@@ -160,8 +182,6 @@ else:
 
 if verbose:
     print("Epochs:", cfg.EPOCHS)
-    if not cfg.EAGERLY:
-        model.summary()
 
 trainCb = TrainCb()
 early_stopping = EarlyStopping(patience=cfg.PATIENCE, restore_best_weights=True, verbose=verbose)
@@ -174,7 +194,7 @@ history = model.fit(t_generator,
                     validation_data=v_generator,
                     callbacks=[early_stopping, trainCb])
 
-if not cfg.EAGERLY and verbose:
+if verbose:
     model.summary()
 
 #############################
