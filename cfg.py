@@ -10,7 +10,7 @@ Organization: Texas State University
 # defines
 # ###############################
 DATAPATH = 'data/'
-DATA = 2
+DATA = 1
 
 #########################
 # Two simple data sets are provided for simple validation of
@@ -35,7 +35,7 @@ elif DATA == 2:
     OUTPUT = 1
     INDEX = 0
     HEADER = 0
-    SEQLENGTH = 20
+    SEQLENGTH = 8
     STRIDE = 1 # 1 is min stride, max overlap. SEQLENGTH is max stride, min overlap
     FIXED = 0
 
@@ -55,17 +55,18 @@ SHUFFLE = True
 BINTHRESHOLD = 0.5
 EAGERLY = True # must be true for attention capture
 BIDIRECTIONAL = True
-LSTM = 64
-DENSE1 = 128
-DENSE2 = 64
-DENSE3 = 32
-DENSE4 = 32
+LSTM = 128
+DENSE1 = 256
+DENSE2 = 128
 DROPOUT = .25
 
-EPOCHS = 2
-PATIENCE = 2
+EPOCHS = 10
+PATIENCE = 5
+
+COMBINED = 1
 
 # these are mutually exclusive [0,1], set only one to 1
+# if COMBINED = 1, these are ignored
 NO_ATTN = 0
 SIMPLE_ATTN = 1
 SELF_ATTN = 0
